@@ -23,7 +23,6 @@ RedisServer::RedisServer(int port) : listen_fd_(-1), epoll_fd_(-1), port_(port) 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
-    socklen_t addrlen = sizeof(address);
 
     if (bind(listen_fd_, (struct sockaddr*)&address, sizeof(address)) < 0) {
         perror("Bind failed");
@@ -55,13 +54,7 @@ RedisServer::RedisServer(int port) : listen_fd_(-1), epoll_fd_(-1), port_(port) 
 }
 
 RedisServer::~RedisServer() {
-    if (listen_fd_ != -1) {
-        close(listen_fd_);
-    }
-    if (epoll_fd_ != -1) {
-        close(epoll_fd_);
-    }
-    std::cout << "RedisServer resources cleaned up." << std::endl;
+    stop();
 }
 
 void RedisServer::handle_new_connection() {
@@ -117,8 +110,14 @@ void RedisServer::handle_client_data(int client_fd) {
 
 void RedisServer::run() {
     struct epoll_event events[MAX_EVENTS];
-    while (true) {
+    is_running_ = true;
+    while (is_running_) {
         int nfds = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
+
+        if (nfds < 0) {
+            if (errno == EINTR) continue;
+            break;
+        }
 
         for (int i = 0; i < nfds; ++i) {
             int fd = events[i].data.fd;
@@ -129,4 +128,23 @@ void RedisServer::run() {
             }
         }
     }
+}
+
+void RedisServer::stop() {
+    is_running_ = false;
+    if (listen_fd_ != -1) {
+        close(listen_fd_);
+        listen_fd_ = -1;
+    }
+
+    if (epoll_fd_ != -1) {
+        close(epoll_fd_);
+        epoll_fd_ = -1;
+    }
+
+    for (auto const& [fd, parser] : parsers_) {
+        close(fd);
+    }
+    parsers_.clear();
+    std::cout << "RedisServer stopped and all connections closed." << std::endl;
 }

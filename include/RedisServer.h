@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include "RespParser.h"
+#include "CommandRegistry.h"
 
 class RedisServer {
 public:
@@ -17,8 +18,9 @@ private:
     int epoll_fd_;
     int port_;
     bool is_running_;
-    std::unordered_map<std::string, std::string> kv_store_;
+    KVStore kv_store_;
     std::unordered_map<int, RespParser> parsers_;
+    CommandRegistry command_registry_;
 
     void handle_new_connection();
     void handle_client_data(int client_fd);

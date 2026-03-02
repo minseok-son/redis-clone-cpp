@@ -9,6 +9,7 @@ add_executable(server
     main.cpp 
     src/RespParser.cpp
     src/RedisServer.cpp
+    src/CommandRegistry.cpp
 )
 
 # 1. Tell CMake where to look for .h files

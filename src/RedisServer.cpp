@@ -80,24 +80,7 @@ void RedisServer::handle_client_data(int client_fd) {
         parsers_[client_fd].feed(buffer, bytes_read); 
 
         while (auto cmd = parsers_[client_fd].parse()) {
-            std::string response;
-
-            if (cmd->command == "PING") {
-                response = "+PONG\r\n";
-            } else if (cmd->command == "SET" && cmd->args.size() >= 2) {
-                kv_store_[cmd->args[0]] = cmd->args[1];
-                response = "+OK\r\n";
-            } else if (cmd->command == "GET" && cmd->args.size() >= 1) {
-                if (kv_store_.count(cmd->args[0])) {
-                    std::string val = kv_store_[cmd->args[0]];
-                    response = "$" + std::to_string(val.size()) + "\r\n" + val + "\r\n";
-                } else {
-                    response = "$-1\r\n";
-                }
-            } else {
-                response = "-ERR unknown command\r\n";
-            }
-
+            std::string response = command_registry_.execute(cmd->command, cmd->args, kv_store_);
             send(client_fd, response.data(), response.size(), 0);
         }
     } else if (bytes_read == 0) {

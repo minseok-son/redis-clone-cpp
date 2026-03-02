@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(server 
     main.cpp 
     src/RespParser.cpp
+    src/RedisServer.cpp
 )
 
 # 1. Tell CMake where to look for .h files
